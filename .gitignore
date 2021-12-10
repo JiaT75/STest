@@ -1,0 +1,10 @@
+*.o
+*.exe
+*.la
+*.lo
+*.cmake
+!build/cmake/*.cmake
+Makefile
+stests
+CMakeCache.txt
+CMakeFiles/
