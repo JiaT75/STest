@@ -57,6 +57,60 @@ void test_assert_false()
   assert_test_fails(assert_false(1));
 }
 
+void test_assert_fail(){
+  assert_test_fails(assert_fail(""));
+}
+
+void test_assert_bit_set(){
+  for(int i = 0, bit = 1; i < sizeof(int) * 8 - 1; i++, bit <<=1){
+    assert_test_passes(assert_bit_set(bit, i));
+    assert_test_fails(assert_bit_set(bit, i+1));
+  }
+}
+
+void test_assert_bit_not_set(){
+  for(int i = 0, bit = 1; i < sizeof(int) * 8 - 1; i++, bit <<=1){
+    assert_test_fails(assert_bit_set(bit, i));
+    assert_test_passes(assert_bit_set(bit, i+1));
+  }
+}
+
+void test_assert_bit_mask_matches(){
+  //mask in binary => 000100100011010001010110
+  int mask = 0x123456;
+  for(int i = 0; i < sizeof(int) * 8 - 1; i++){
+    assert_test_passes(assert_bit_mask_matches(i | mask, mask));
+    assert_test_fails(assert_bit_mask_matches(i, mask));
+  }
+}
+
+void test_assert_double_equal(){
+  const double delta = 0.001;
+  assert_test_passes(assert_double_equal(1.0, 1.0, delta));
+  assert_test_fails(assert_double_equal(1.0, 2.0, delta));
+  double d1 = 1.5;
+  double d2 = 2.5;
+  assert_test_passes(assert_double_equal(d2 - 1, d1, delta));
+  assert_test_passes(assert_double_equal(d1 + 1, d2, delta));
+  assert_test_fails(assert_double_equal(d1, d2, delta));
+}
+
+void test_assert_string_contains(){
+
+}
+
+void test_assert_string_not_contains(){
+
+}
+
+void test_assert_string_starts_with(){
+
+}
+
+void test_assert_string_ends_with(){
+
+}
+
 void test_fixture_stest(void)
 {
   test_fixture_start();      
@@ -66,6 +120,15 @@ void test_fixture_stest(void)
   run_test(test_assert_ulong_equal);
   run_test(test_assert_string_equal);
   run_test(test_assert_n_array_equal);
+  run_test(test_assert_fail);
+  run_test(test_assert_bit_set);
+  run_test(test_assert_bit_not_set);
+  run_test(test_assert_bit_mask_matches);
+  run_test(test_assert_double_equal);
+  run_test(test_assert_string_contains);
+  run_test(test_assert_string_not_contains);
+  run_test(test_assert_string_starts_with);
+  run_test(test_assert_string_ends_with);
   test_fixture_end();       
 }
 
@@ -76,5 +139,5 @@ void all_tests(void)
 
 int main(int argc, char** argv)
 {
-  return run_tests(all_tests);
+  return stest_testrunner(argc, argv, all_tests, NULL, NULL);
 }
