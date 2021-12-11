@@ -550,14 +550,14 @@ void stest_simple_test_result_nolog(int passed, char* reason, const char* functi
   stest_last_passed = passed;  
 }
 
-void stest_assert_last_passed()
+void stest_assert_last_passed(const char* function, unsigned int line)
 {
-  assert_int_equal(1, stest_last_passed);
+  stest_assert_int_equal(1, stest_last_passed, function, line);
 }
 
-void stest_assert_last_failed()
+void stest_assert_last_failed(const char* function, unsigned int line)
 {
-  assert_int_equal(0, stest_last_passed);
+  stest_assert_int_equal(0, stest_last_passed, function, line);
 }
 
 void stest_disable_logging()

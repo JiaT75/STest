@@ -93,8 +93,8 @@ int stest_testrunner(int argc, char** argv, stest_void_void tests, stest_void_vo
 
 #ifdef STEST_INTERNAL_TESTS 
 void stest_simple_test_result_nolog(int passed, char* reason, const char* function, unsigned int line);
-void stest_assert_last_passed();
-void stest_assert_last_failed();
-void stest_enable_logging();
-void stest_disable_logging();
+void stest_assert_last_passed(const char* function, unsigned int line);
+void stest_assert_last_failed(const char* function, unsigned int line);
+void stest_enable_logging(void);
+void stest_disable_logging(void);
 #endif
