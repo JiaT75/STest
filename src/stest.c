@@ -58,10 +58,11 @@ typedef struct
 	char** argv;
 	stest_action_t action;
 } stest_testrunner_t;
+
 static int stest_screen_width = 70;
-static int sea_tests_run = 0;
-static int sea_tests_passed = 0;
-static int sea_tests_failed = 0;
+static int stests_run = 0;
+static int stests_passed = 0;
+static int stests_failed = 0;
 static int stest_display_only = 0;
 static int stest_verbose = 0;
 static int vs_mode = 0;
@@ -176,7 +177,7 @@ void stest_simple_test_result_log(int passed, char* reason, const char* function
 				stest_log_failure(reason, function, line);
 			}
 		}
-		sea_tests_failed++;
+		stests_failed++;
 
 		#ifdef ABORT_TEST_IF_ASSERT_FAIL
 		printf("Test has been finished with failure.\r\n");
@@ -196,7 +197,7 @@ void stest_simple_test_result_log(int passed, char* reason, const char* function
 				stest_log_success(function, line);
 			}			
 		}
-		sea_tests_passed++;
+		stests_passed++;
 	}	
 }
 
@@ -294,7 +295,7 @@ void stest_assert_string_contains(const char* expected, const char* actual, cons
 	stest_simple_test_result(strstr(actual, expected)!=0, s, function, line);	
 }
 
-void stest_assert_string_doesnt_contain(const char* expected, const char* actual, const char* function, unsigned int line)
+void stest_assert_string_not_contains(const char* expected, const char* actual, const char* function, unsigned int line)
 {
 	char s[STEST_PRINT_BUFFER_SIZE];
 	sprintf(s, "Expected %s not to have %s in it", actual, expected);
@@ -303,7 +304,7 @@ void stest_assert_string_doesnt_contain(const char* expected, const char* actual
 
 void stest_run_test(char* fixture, char* test)
 {
-	sea_tests_run++; 
+	stests_run++; 
 }
 
 void stest_header_printer(char* s, int s_len,  int length, char f)
@@ -324,8 +325,8 @@ void stest_test_fixture_start(char* filepath)
 	stest_current_fixture_path = filepath;
 	stest_current_fixture = test_file_name(filepath);
 	stest_header_printer(stest_current_fixture, strlen(stest_current_fixture), stest_screen_width, '-');
-	stest_fixture_tests_failed = sea_tests_failed;
-	stest_fixture_tests_run = sea_tests_run;
+	stest_fixture_tests_failed = stests_failed;
+	stest_fixture_tests_run = stests_run;
 	stest_fixture_teardown = 0;
 	stest_fixture_setup = 0;
 }
@@ -333,7 +334,7 @@ void stest_test_fixture_start(char* filepath)
 void stest_test_fixture_end()
 {
 	char s[STEST_PRINT_BUFFER_SIZE];
-	sprintf(s, "%d run  %d failed", sea_tests_run-stest_fixture_tests_run, sea_tests_failed-stest_fixture_tests_failed);
+	sprintf(s, "%d run  %d failed", stests_run-stest_fixture_tests_run, stests_failed-stest_fixture_tests_failed);
 	stest_header_printer(s, strlen(s), stest_screen_width, ' ');
 	if(stest_is_display_only() || stest_machine_readable) return;
 	printf("\r\n");
@@ -414,7 +415,7 @@ int run_tests(stest_void_void tests)
 
 	if(stest_is_display_only() || stest_machine_readable) return STEST_RET_OK;
 	printf("\r\n");	 
-	if (sea_tests_failed > 0) {
+	if (stests_failed > 0) {
 		if(stest_machine_readable){
 			stest_header_printer("Failed", sizeof("Failed") - 1, stest_screen_width, ' ');
 		}
@@ -430,14 +431,14 @@ int run_tests(stest_void_void tests)
 			stest_header_printer(STEST_GREEN "ALL TESTS PASSED" STEST_COLOR_RESET, sizeof("ALL TESTS PASSED") -1, stest_screen_width, ' ');
 		}
 	}
-	sprintf(s,"%d tests run", sea_tests_run);
+	sprintf(s,"%d tests run", stests_run);
 	stest_header_printer(s, strlen(s), stest_screen_width, ' ');
 	sprintf(s,"in %lu ms",end - start);
 	stest_header_printer(s, strlen(s), stest_screen_width, ' ');
 	printf("\r\n");	 
 	stest_header_printer("", sizeof("") - 1, stest_screen_width, '=');
 
-	return STEST_RET_FAILED_COUNT(sea_tests_failed);
+	return STEST_RET_FAILED_COUNT(stests_failed);
 }
 
 

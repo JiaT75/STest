@@ -28,6 +28,7 @@ typedef void (*stest_void_string)(char*);
 /*
 Declarations
 */
+
 extern void (*stest_simple_test_result)(int passed, char* reason, const char* function, unsigned int line);
 void stest_test_fixture_start(char* filepath);
 void stest_test_fixture_end( void );
@@ -42,7 +43,7 @@ void stest_assert_string_equal(const char* expected, const char* actual, const c
 void stest_assert_string_ends_with(const char* expected, const char* actual, const char* function, unsigned int line);
 void stest_assert_string_starts_with(const char* expected, const char* actual, const char* function, unsigned int line);
 void stest_assert_string_contains(const char* expected, const char* actual, const char* function, unsigned int line);
-void stest_assert_string_doesnt_contain(const char* expected, const char* actual, const char* function, unsigned int line);
+void stest_assert_string_not_contains(const char* expected, const char* actual, const char* function, unsigned int line);
 int  stest_should_run( char* fixture, char* test);
 void stest_before_run( char* fixture, char* test);
 void stest_run_test(char* fixture, char* test);
@@ -51,6 +52,7 @@ void stest_teardown( void );
 void stest_suite_teardown( void );
 void stest_suite_setup( void );
 void stest_test(char* fixture, char* test, void(*test_function)(void));
+
 /*
 Assert Macros
 */
@@ -68,7 +70,7 @@ Assert Macros
 #define assert_float_equal(expected, actual, delta) do {  stest_assert_float_equal(expected, actual, delta, __FUNCTION__, __LINE__); } while (0)
 #define assert_double_equal(expected, actual, delta) do {  stest_assert_double_equal(expected, actual, delta, __FUNCTION__, __LINE__); } while (0)
 #define assert_string_contains(expected, actual) do {  stest_assert_string_contains(expected, actual, __FUNCTION__, __LINE__); } while (0)
-#define assert_string_doesnt_contain(expected, actual) do {  stest_assert_string_doesnt_contain(expected, actual, __FUNCTION__, __LINE__); } while (0)
+#define assert_string_not_contains(expected, actual) do {  stest_assert_string_not_contains(expected, actual, __FUNCTION__, __LINE__); } while (0)
 #define assert_string_starts_with(expected, actual) do {  stest_assert_string_starts_with(expected, actual, __FUNCTION__, __LINE__); } while (0)
 #define assert_string_ends_with(expected, actual) do {  stest_assert_string_ends_with(expected, actual, __FUNCTION__, __LINE__); } while (0)
 
