@@ -62,16 +62,20 @@ void test_assert_fail(){
 }
 
 void test_assert_bit_set(){
-  for(int i = 0, bit = 1; i < sizeof(int) * 8 - 1; i++, bit <<=1){
-    assert_test_passes(assert_bit_set(bit, i));
-    assert_test_fails(assert_bit_set(bit, i+1));
+  for(int bit = 0, value = 1; bit < sizeof(int) * 8; bit++, value <<= 1){
+    assert_test_passes(assert_bit_set(bit, value));
+    if(bit > 0){
+      assert_test_fails(assert_bit_set(bit - 1, value));
+    }
   }
 }
 
 void test_assert_bit_not_set(){
-  for(int i = 0, bit = 1; i < sizeof(int) * 8 - 1; i++, bit <<=1){
-    assert_test_fails(assert_bit_set(bit, i));
-    assert_test_passes(assert_bit_set(bit, i+1));
+  for(int bit = 0, value = 1; bit < sizeof(int) * 8; bit++, value <<= 1){
+    assert_test_fails(assert_bit_not_set(bit, value));
+    if(bit > 0){
+      assert_test_passes(assert_bit_not_set(bit - 1, value));
+    }
   }
 }
 
@@ -79,7 +83,7 @@ void test_assert_bit_mask_matches(){
   //mask in binary => 000100100011010001010110
   int mask = 0x123456;
   for(int i = 0; i < sizeof(int) * 8 - 1; i++){
-    assert_test_passes(assert_bit_mask_matches(i | mask, mask));
+    assert_test_passes(assert_bit_mask_matches((i | mask), mask));
     assert_test_fails(assert_bit_mask_matches(i, mask));
   }
 }
@@ -98,29 +102,29 @@ void test_assert_double_equal(){
 void test_assert_string_contains(){
   const char* str1 = "string one";
   const char* str2 = "string one and more";
-  assert_test_passes(assert_string_contains(str2, str1));
-  assert_test_fails(assert_string_contains(str1, str2));
+  assert_test_passes(assert_string_contains(str1, str2));
+  assert_test_fails(assert_string_contains(str2, str1));
 }
 
 void test_assert_string_not_contains(){
   const char* str1 = "string one";
   const char* str2 = "string one and more";
-  assert_test_fails(assert_string_not_contains(str2, str1));
-  assert_test_passes(assert_string_not_contains(str1, str2));
+  assert_test_fails(assert_string_not_contains(str1, str2));
+  assert_test_passes(assert_string_not_contains(str2, str1));
 }
 
 void test_assert_string_starts_with(){
   const char* str1 = "string one";
   const char* str2 = "string one and more";
-  assert_test_passes(assert_string_starts_with(str2, str1));
-  assert_test_fails(assert_string_starts_with(str1, str2));
+  assert_test_passes(assert_string_starts_with(str1, str2));
+  assert_test_fails(assert_string_starts_with(str2, str1));
 }
 
 void test_assert_string_ends_with(){
   const char* str1 = "and more";
   const char* str2 = "string one and more";
-  assert_test_passes(assert_string_ends_with(str2, str1));
-  assert_test_fails(assert_string_ends_with(str1, str2));
+  assert_test_passes(assert_string_ends_with(str1, str2));
+  assert_test_fails(assert_string_ends_with(str2, str1));
 }
 
 void test_fixture_stest(void)
