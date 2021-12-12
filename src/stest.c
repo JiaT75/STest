@@ -552,12 +552,12 @@ void stest_simple_test_result_nolog(int passed, char* reason, const char* functi
 
 void stest_assert_last_passed(const char* function, unsigned int line)
 {
-  stest_assert_int_equal(1, stest_last_passed, function, line);
+  stest_assert_true(stest_last_passed, function, line);
 }
 
 void stest_assert_last_failed(const char* function, unsigned int line)
 {
-  stest_assert_int_equal(0, stest_last_passed, function, line);
+  stest_assert_false(stest_last_passed, function, line);
 }
 
 void stest_disable_logging()
