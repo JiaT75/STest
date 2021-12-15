@@ -13,24 +13,38 @@
 - Ability to selectively run tests and fixtures
 
 ## Asserts
-- assert_true
-- assert_false
-- assert_int_equal
-- assert_ulong_equal
-- assert_string_equal
-- assert_n_array_equal
-- assert_bit_set
-- assert_bit_not_set
-- assert_bit_mask_matches
-- assert_fail
-- assert_float_equal
-- assert_double_equal
-- assert_string_contains
-- assert_string_not_contains
-- assert_string_starts_with
-- assert_string_ends_with
+| Assert | Arguments | Meaning |
+|--------|-----------| ----------- |
+|assert_true| int test | Asserts test is non-zero|
+|assert_false| int test | Asserts test is zero|
+|assert_int_equal| int expected, int actual| Asserts expected == actual|
+|assert_ulong_equal| unsigned long expected, unsigned long actual| Asserts expected == actual|
+|assert_string_equal| char* expected, char* actual| Asserts all characters of expected equal all characters of actual|
+|assert_n_array_equal| void* expected, void* actual, int n| Asserts first n elements from expected to actual|
+|assert_bit_set| int bit_number, int value| Asserts the bit_number in value is set to a 1|
+|assert_bit_not_set| int bit_number, int value| Asserts the bit_number in value is set to a 0
+|assert_bit_mask_matches| \<size> value, \<size> mask|Asserts all 1 bits in mask are set to 1 in value|
+|assert_fail| char* message | Automatic failing test with a custom message|
+|assert_float_equal| float expected, float actual, float delta| Asserts expected is within delta above or below value|
+|assert_double_equal|double expected, double actual, double delta| Asserts expected is within delta above or below value|
+|assert_string_contains| char* contained, char* container| Asserts contained is a substring of container|
+|assert_string_not_contains|char* contained, char* container| Asserts contained is not a substring of container|
+|assert_string_starts_with| char* contained, char* container| Asserts container begins with contained|
+|assert_string_ends_with| char* contained, char* container| Asserts container ends with contained|
 
 ## Command Line Arguments
+The test runner can be run with a few simple command line arguments.
+
+| Option           | Meaning                                          |
+| -----------------| -------------------------------------------------|
+| -d               | Display tests, do not run tests                  |
+| -v               | Run tests in verbose mode                        |
+| -vs              | Alternative display mode                         |
+| -t \<testname>   | Only run tests that match \<testname>            |
+| -f \<fixturename>| Only run fixtures that match \<fixturename>      |
+| -m               | Output machine readable                          |
+| -k \<marker>     | prepend \<marker> before machine readable output |
+| help             | Output help message                              |
 
 ## Example Usage
 
