@@ -164,18 +164,10 @@ void stest_simple_test_result_log(int passed, char* reason, const char* function
 			{
 				printf("%s%s,%s,%u,%s\r\n", stest_magic_marker, stest_current_fixture_path, function, line, reason );
 			}
-			
 		}
 		else
-		{	
-			if ( vs_mode )
-			{
-				printf("%s (%u)		%s,%s\r\n", stest_current_fixture_path, line, function, reason );
-			}
-			else
-			{
-				stest_log_failure(reason, function, line);
-			}
+		{
+			stest_log_failure(reason, function, line);	
 		}
 		stests_failed++;
 
