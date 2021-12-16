@@ -50,41 +50,37 @@ The test runner can be run with a few simple command line arguments.
 
 ```C
 // Sample test
-void my_test(){
-    int actual = 10;
-    assert_int_equal(10, actual);
+void my_test() {
+  int actual = 10;
+  assert_int_equal(10, actual);
 
-    char* actual_str = "Hello World";
-    assert_string_contains("Hello", actual_str);
+  char *actual_str = "Hello World";
+  assert_string_contains("Hello", actual_str);
 }
 
 // Another sample Test
-void another_test(){
-    assert_true(1);
-    assert_false(0);
+void another_test() {
+  assert_true(1);
+  assert_false(0);
 }
 
 // Sample fixture
 // Fixtures are a collection of related tests
-void test_fixture(){
-    test_fixture_start();
-    run_test(my_test());
-    another_test();
-    test_fixture_end();
+void test_fixture() {
+  test_fixture_start();
+  run_test(my_test());
+  another_test();
+  test_fixture_end();
 }
 
 // Sample test suite
 // Should combine all fixtures that belong in the suite
-void run_all_tests(){
-    test_fixture();
-}
+void run_all_tests() { test_fixture(); }
 
 // Keep main simple to run all of your test suites
-int main(int argc, char** argv)
-{
-    return stest_testrunner(argc, argv, run_all_tests, NULL, NULL);
+int main(int argc, char **argv) {
+  return stest_testrunner(argc, argv, run_all_tests, NULL, NULL);
 }
-
 ```
 
 ## Contributing
@@ -92,7 +88,9 @@ int main(int argc, char** argv)
 I am happy to accept pull requests for bug fixes and new features. Here are the suggested steps:
 1. Fork the repository
 2. Create a new branch
-3. Add your commits
-4. Create a pull request to master
+3. Implement your feature
+4. Reformat your code with the provided .clang-format file
+5. Add your commits
+6. Create a pull request to master
 
 I will try to keep the issues tab updated with improvements I am envisioning. 
