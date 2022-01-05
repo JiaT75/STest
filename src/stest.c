@@ -413,14 +413,14 @@ int run_tests(stest_void_void tests) {
 }
 
 void stest_show_help(void) {
-  printf("Usage: [-t <testname>] [-f <fixturename>] [-d] [help] [-v] [-m] [-k "
-         "<marker>\r\n");
+  printf("Usage: [-t <testname>] [-f <fixturename>] [-d] [-h | --help] [-v] [-m] [-k "
+         "<marker>]\r\n");
   printf("Flags:\r\n");
   printf("\thelp:\twill display this help\r\n");
   printf("\t-t:\twill only run tests that match <testname>\r\n");
   printf("\t-f:\twill only run fixtures that match <fixturename>\r\n");
   printf("\t-d:\twill just display test names and fixtures without\r\n");
-  printf("\t-d:\trunning the test\r\n");
+  printf("\t\trunning the test\r\n");
   printf("\t-v:\twill print a more verbose version of the test run\r\n");
   printf("\t-m:\twill print a machine readable format of the test run, ie :- "
          "\r\n");
@@ -455,30 +455,36 @@ int stest_parse_commandline_option_with_value(stest_testrunner_t *runner,
 
 void stest_interpret_commandline(stest_testrunner_t *runner) {
   int arg;
-  for(arg = 0; (arg < runner->argc) && (runner->action != STEST_DO_ABORT);
+  for(arg = 1; (arg < runner->argc) && (runner->action != STEST_DO_ABORT);
       arg++) {
-    if(stest_is_string_equal_i(runner->argv[arg], "help")) {
+    if(stest_is_string_equal_i(runner->argv[arg], "--help") || stest_is_string_equal_i(runner->argv[arg], "-h")) {
       stest_show_help();
       runner->action = STEST_DO_NOTHING;
       return;
     }
-    if(stest_is_string_equal_i(runner->argv[arg], "-d"))
+    else if(stest_is_string_equal_i(runner->argv[arg], "-d"))
       runner->action = STEST_DISPLAY_TESTS;
-    if(stest_is_string_equal_i(runner->argv[arg], "-v"))
+    else if(stest_is_string_equal_i(runner->argv[arg], "-v"))
       stest_verbose = 1;
-    if(stest_is_string_equal_i(runner->argv[arg], "-vs"))
+    else if(stest_is_string_equal_i(runner->argv[arg], "-vs"))
       vs_mode = 1;
-    if(stest_is_string_equal_i(runner->argv[arg], "-m"))
+    else if(stest_is_string_equal_i(runner->argv[arg], "-m"))
       stest_machine_readable = 1;
-    if(stest_parse_commandline_option_with_value(runner, arg, "-t",
+    else if(stest_parse_commandline_option_with_value(runner, arg, "-t",
                                                  test_filter))
       arg++;
-    if(stest_parse_commandline_option_with_value(runner, arg, "-f",
+    else if(stest_parse_commandline_option_with_value(runner, arg, "-f",
                                                  fixture_filter))
       arg++;
-    if(stest_parse_commandline_option_with_value(runner, arg, "-k",
+    else if(stest_parse_commandline_option_with_value(runner, arg, "-k",
                                                  set_magic_marker))
       arg++;
+    else {
+      printf("Error: %s option is not supported. Here is the help menu:\n", runner->argv[arg]);
+      stest_show_help();
+      runner->action = STEST_DO_NOTHING;
+      return;
+    }
   }
 }
 
