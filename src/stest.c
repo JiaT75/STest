@@ -296,10 +296,16 @@ void stest_header_printer(char *s, int s_len, int length, char f) {
 void stest_test_fixture_start(char *filepath) {
   stest_current_fixture_path = filepath;
   stest_current_fixture = test_file_name(filepath);
-  stest_header_printer(stest_current_fixture, strlen(stest_current_fixture),
-                       stest_screen_width, '-');
-  stest_fixture_tests_failed = stests_failed;
-  stest_fixture_tests_run = stests_run;
+  if(stest_is_display_only()) {
+    printf("Fixture: %s\n", stest_current_fixture);
+  }
+  else {
+    stest_header_printer(stest_current_fixture, strlen(stest_current_fixture),
+                         stest_screen_width, '-');
+    stest_fixture_tests_failed = stests_failed;
+    stest_fixture_tests_run = stests_run;
+  }
+
   stest_fixture_teardown = 0;
   stest_fixture_setup = 0;
 }
@@ -354,6 +360,10 @@ int stest_should_run(char *fixture, char *test) {
 }
 
 void stest_test(char *fixture, char *test, void (*test_function)(void)) {
+  if(stest_is_display_only()) {
+    printf("%s\n", test);
+  }
+
   stest_suite_setup();
   stest_setup();
 
@@ -413,7 +423,8 @@ int run_tests(stest_void_void tests) {
 }
 
 void stest_show_help(void) {
-  printf("Usage: [-t <testname>] [-f <fixturename>] [-d] [-h | --help] [-v] [-m] [-k "
+  printf("Usage: [-t <testname>] [-f <fixturename>] [-d] [-h | --help] [-v] "
+         "[-m] [-k "
          "<marker>]\r\n");
   printf("Flags:\r\n");
   printf("\thelp:\twill display this help\r\n");
@@ -457,7 +468,8 @@ void stest_interpret_commandline(stest_testrunner_t *runner) {
   int arg;
   for(arg = 1; (arg < runner->argc) && (runner->action != STEST_DO_ABORT);
       arg++) {
-    if(stest_is_string_equal_i(runner->argv[arg], "--help") || stest_is_string_equal_i(runner->argv[arg], "-h")) {
+    if(stest_is_string_equal_i(runner->argv[arg], "--help") ||
+       stest_is_string_equal_i(runner->argv[arg], "-h")) {
       stest_show_help();
       runner->action = STEST_DO_NOTHING;
       return;
@@ -471,16 +483,17 @@ void stest_interpret_commandline(stest_testrunner_t *runner) {
     else if(stest_is_string_equal_i(runner->argv[arg], "-m"))
       stest_machine_readable = 1;
     else if(stest_parse_commandline_option_with_value(runner, arg, "-t",
-                                                 test_filter))
+                                                      test_filter))
       arg++;
     else if(stest_parse_commandline_option_with_value(runner, arg, "-f",
-                                                 fixture_filter))
+                                                      fixture_filter))
       arg++;
     else if(stest_parse_commandline_option_with_value(runner, arg, "-k",
-                                                 set_magic_marker))
+                                                      set_magic_marker))
       arg++;
     else {
-      printf("Error: %s option is not supported. Here is the help menu:\n", runner->argv[arg]);
+      printf("Error: %s option is not supported. Here is the help menu:\n",
+             runner->argv[arg]);
       stest_show_help();
       runner->action = STEST_DO_NOTHING;
       return;
