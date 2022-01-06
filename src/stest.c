@@ -19,6 +19,8 @@ int stest_is_string_equal_i(const char *s1, const char *s2) {
 #else
 #include <strings.h>
 #include <sys/time.h>
+#include <unistd.h>
+
 unsigned int GetTickCount() {
   struct timeval current_time;
   gettimeofday(&current_time, NULL);
@@ -65,6 +67,7 @@ static int stest_display_only = 0;
 static int stest_verbose = 0;
 static int vs_mode = 0;
 static int stest_machine_readable = 0;
+static int stest_color_output = 0;
 static char *stest_current_fixture;
 static char *stest_current_fixture_path;
 static char stest_magic_marker[20] = "";
@@ -122,21 +125,44 @@ char *test_file_name(char *path) {
 static int stest_fixture_tests_run;
 static int stest_fixture_tests_failed;
 
-static void stest_log_failure(const char *reason, const char *function,
-                              unsigned int line) {
-  if(vs_mode) {
-    printf("%s (%u)		%s,%s%s%s\r\n", stest_current_fixture_path,
-           line, function, STEST_RED, reason, STEST_COLOR_RESET);
+static int stest_can_color(){
+  return stest_color_output;
+}
+
+static void stest_determine_color_output(FILE* standard_out){
+#ifdef WIN32
+  stest_color_output = GetFileType(standard_out) == FILE_TYPE_CHAR);
+#else
+  stest_color_output = isatty(fileno(standard_out));
+#endif
+}
+
+static void stest_add_color(char* outstr, const char* instr, char* color){
+  if(stest_can_color()){
+    sprintf(outstr, "%s%s%s", color, instr, STEST_COLOR_RESET);
   }
   else {
-    printf("%-30s Line %-5d %s%s%s\r\n", function, line, STEST_RED, reason,
-           STEST_COLOR_RESET);
+    strcpy(outstr, instr);
+  }
+}
+
+static void stest_log_failure(const char *reason, const char *function,
+                              unsigned int line) {
+  char failed[100];
+  stest_add_color(failed, reason, STEST_RED);
+  if(vs_mode) {
+    printf("%s (%u)		%s,%s\r\n", stest_current_fixture_path,
+           line, function, failed);
+  }
+  else {
+    printf("%-30s Line %-5d %s\r\n", function, line, failed);
   }
 }
 
 static void stest_log_success(const char *function, unsigned int line) {
-  printf("%-30s Line %-5d %sPassed%s\r\n", function, line, STEST_GREEN,
-         STEST_COLOR_RESET);
+  char passed[30];
+  stest_add_color(passed, "Passed", STEST_GREEN);
+  printf("%-30s Line %-5d %s\r\n", function, line, passed);
 }
 
 void stest_simple_test_result_log(int passed, char *reason,
@@ -409,8 +435,9 @@ int run_tests(stest_void_void tests) {
                            ' ');
     }
     else {
-      stest_header_printer(STEST_RED "Failed" STEST_COLOR_RESET,
-                           sizeof("Failed") - 1, stest_screen_width, ' ');
+      char failed[30];
+      stest_add_color(failed, "failed", STEST_RED);
+      stest_header_printer(failed, sizeof("Failed") - 1, stest_screen_width, ' ');
     }
   }
   else {
@@ -419,9 +446,9 @@ int run_tests(stest_void_void tests) {
                            stest_screen_width, ' ');
     }
     else {
-      stest_header_printer(STEST_GREEN "ALL TESTS PASSED" STEST_COLOR_RESET,
-                           sizeof("ALL TESTS PASSED") - 1, stest_screen_width,
-                           ' ');
+      char passed[30];
+      stest_add_color(passed, "ALL TESTS PASSED", STEST_GREEN);
+      stest_header_printer(passed, sizeof("ALL TESTS PASSED") - 1, stest_screen_width, ' ');
     }
   }
   if(stests_run == 1){
@@ -529,6 +556,7 @@ int stest_testrunner(int argc, char **argv, stest_void_void tests,
                      stest_void_void setup, stest_void_void teardown) {
   stest_testrunner_t runner;
   stest_testrunner_create(&runner, argc, argv);
+  stest_determine_color_output(stdout);
   switch(runner.action) {
   case STEST_DISPLAY_TESTS: {
     stest_display_only = 1;
