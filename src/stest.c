@@ -317,7 +317,7 @@ void stest_test_fixture_start(char *filepath) {
 
 void stest_test_fixture_end() {
   char s[STEST_PRINT_BUFFER_SIZE];
-  sprintf(s, "%d run  %d failed", stests_run - stest_fixture_tests_run,
+  sprintf(s, "%d run %d failed", stests_run - stest_fixture_tests_run,
           stests_failed - stest_fixture_tests_failed);
   stest_header_printer(s, strlen(s), stest_screen_width, ' ');
   if(stest_is_display_only() || stest_machine_readable)
@@ -424,7 +424,12 @@ int run_tests(stest_void_void tests) {
                            ' ');
     }
   }
-  sprintf(s, "%d tests run", stests_run);
+  if(stests_run == 1){
+    strcpy(s, "1 test run");
+  }
+  else {
+    sprintf(s, "%d tests run", stests_run);
+  }
   stest_header_printer(s, strlen(s), stest_screen_width, ' ');
   sprintf(s, "in %lu ms", end - start);
   stest_header_printer(s, strlen(s), stest_screen_width, ' ');
