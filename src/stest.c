@@ -112,9 +112,9 @@ void stest_teardown(void) {
 
 char *test_file_name(char *path) {
   char *file = path + strlen(path);
-  while(file != path && *file != '\\')
+  while(file != path && *file != '\\' && *file != '/')
     file--;
-  if(*file == '\\')
+  if(*file == '\\' || *file == '/')
     file++;
   return file;
 }
@@ -296,6 +296,11 @@ void stest_header_printer(char *s, int s_len, int length, char f) {
 void stest_test_fixture_start(char *filepath) {
   stest_current_fixture_path = filepath;
   stest_current_fixture = test_file_name(filepath);
+
+  if(!stest_should_run_fixture(stest_current_fixture)) {
+    return;
+  }
+
   if(stest_is_display_only()) {
     printf("Fixture: %s\n", stest_current_fixture);
   }
@@ -333,13 +338,24 @@ void set_magic_marker(char *marker) {
   strcpy(stest_magic_marker, marker);
 }
 
-void stest_display_test(char *fixture_name, char *test_name) {
-  if(test_name == NULL)
-    return;
-  printf("%s,%s\r\n", fixture_name, test_name);
+int stest_should_run_test(char *test) {
+  int run = 1;
+
+  if(stest_fixture_filter) {
+    if(strncmp(stest_fixture_filter, stest_current_fixture,
+               strlen(stest_fixture_filter)) != 0)
+      run = 0;
+  }
+
+  if(stest_test_filter && test != NULL) {
+    if(strncmp(stest_test_filter, test, strlen(stest_test_filter)) != 0)
+      run = 0;
+  }
+
+  return run;
 }
 
-int stest_should_run(char *fixture, char *test) {
+int stest_should_run_fixture(char *fixture) {
   int run = 1;
 
   if(stest_fixture_filter) {
@@ -347,19 +363,15 @@ int stest_should_run(char *fixture, char *test) {
        0)
       run = 0;
   }
-  if(stest_test_filter && test != NULL) {
-    if(strncmp(stest_test_filter, test, strlen(stest_test_filter)) != 0)
-      run = 0;
-  }
 
-  if(run && stest_display_only) {
-    stest_display_test(fixture, test);
-    run = 0;
-  }
   return run;
 }
 
 void stest_test(char *fixture, char *test, void (*test_function)(void)) {
+  if(!stest_should_run_test(test)) {
+    return;
+  }
+
   if(stest_is_display_only()) {
     printf("%s\n", test);
   }
@@ -424,8 +436,7 @@ int run_tests(stest_void_void tests) {
 
 void stest_show_help(void) {
   printf("Usage: [-t <testname>] [-f <fixturename>] [-d] [-h | --help] [-v] "
-         "[-m] [-k "
-         "<marker>]\r\n");
+         "[-m] [-k <marker>]\r\n");
   printf("Flags:\r\n");
   printf("\thelp:\twill display this help\r\n");
   printf("\t-t:\twill only run tests that match <testname>\r\n");

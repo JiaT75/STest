@@ -55,7 +55,8 @@ void stest_assert_string_contains(const char *expected, const char *actual, cons
                                   unsigned int line);
 void stest_assert_string_not_contains(const char *expected, const char *actual,
                                       const char *function, unsigned int line);
-int stest_should_run(char *fixture, char *test);
+int stest_should_run_fixture(char *fixture);
+int stest_should_run_test(char *test);
 void stest_before_run(char *fixture, char *test);
 void stest_run_test(char *fixture, char *test);
 void stest_setup(void);
