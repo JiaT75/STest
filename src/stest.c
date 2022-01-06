@@ -131,7 +131,8 @@ static int stest_can_color(){
 
 static void stest_determine_color_output(FILE* standard_out){
 #ifdef WIN32
-  stest_color_output = GetFileType(standard_out) == FILE_TYPE_CHAR);
+  //Output coloring is not supported on windows
+  stest_color_output = 0;
 #else
   stest_color_output = isatty(fileno(standard_out));
 #endif
