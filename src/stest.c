@@ -6,34 +6,6 @@
 #include "stest.h"
 #include <string.h>
 
-#define SECONDS_TO_MILLISECONDS(sec) sec * 1000
-#define MICRO_SECONDS_TO_MILLISECONDS(microsec) microsec / 1000
-
-#ifdef WIN32
-#include "windows.h"
-int stest_is_string_equal_i(const char *s1, const char *s2) {
-#pragma warning(disable : 4996)
-  return stricmp(s1, s2) == 0;
-}
-
-#else
-#include <strings.h>
-#include <sys/time.h>
-#include <unistd.h>
-
-unsigned int GetTickCount() {
-  struct timeval current_time;
-  gettimeofday(&current_time, NULL);
-  return SECONDS_TO_MILLISECONDS(current_time.tv_sec) +
-         MICRO_SECONDS_TO_MILLISECONDS(current_time.tv_usec);
-}
-
-int stest_is_string_equal_i(const char *s1, const char *s2) {
-  return strcasecmp(s1, s2) == 0;
-}
-
-#endif
-
 #ifdef STEST_INTERNAL_TESTS
 static int stest_last_passed = 0;
 #endif
@@ -68,17 +40,64 @@ static int stest_verbose = 0;
 static int vs_mode = 0;
 static int stest_machine_readable = 0;
 static int stest_color_output = 0;
-static char *stest_current_fixture;
-static char *stest_current_fixture_path;
-static char stest_magic_marker[20] = "";
+static const char *stest_current_fixture;
+static const char *stest_current_fixture_path;
+static char stest_magic_marker[20];
+static int stest_fixture_tests_run = 0;
+static int stest_fixture_tests_failed = 0;
+static const char *stest_fixture_filter;
+static const char *stest_test_filter;
 
 static stest_void_void stest_suite_setup_func = 0;
 static stest_void_void stest_suite_teardown_func = 0;
 static stest_void_void stest_fixture_setup = 0;
 static stest_void_void stest_fixture_teardown = 0;
 
-void (*stest_simple_test_result)(int passed, char *reason, const char *function,
-                                 unsigned int line) =
+unsigned int GetTickCount(void);
+int stest_is_string_equal_i(const char *s1, const char *s2);
+int stest_is_display_only(void);
+const char *test_file_name(const char *path);
+static int stest_can_color(void);
+void stest_header_printer(const char *s, int s_len, int length, char f);
+void set_magic_marker(const char *marker);
+void stest_show_help(void);
+int stest_commandline_has_value_after(stest_testrunner_t *runner, int arg);
+int stest_parse_commandline_option_with_value(stest_testrunner_t *runner,
+                                              int arg, const char *option,
+                                              stest_void_string setter);
+void stest_interpret_commandline(stest_testrunner_t *runner);
+void stest_testrunner_create(stest_testrunner_t *runner, int argc, char **argv);
+
+#define SECONDS_TO_MILLISECONDS(sec) sec * 1000
+#define MICRO_SECONDS_TO_MILLISECONDS(microsec) microsec / 1000
+
+#ifdef WIN32
+#include "windows.h"
+int stest_is_string_equal_i(const char *s1, const char *s2) {
+#pragma warning(disable : 4996)
+  return stricmp(s1, s2) == 0;
+}
+
+#else
+#include <strings.h>
+#include <sys/time.h>
+#include <unistd.h>
+
+unsigned int GetTickCount(void) {
+  struct timeval current_time;
+  gettimeofday(&current_time, NULL);
+  return SECONDS_TO_MILLISECONDS(current_time.tv_sec) +
+         MICRO_SECONDS_TO_MILLISECONDS(current_time.tv_usec);
+}
+
+int stest_is_string_equal_i(const char *s1, const char *s2) {
+  return strcasecmp(s1, s2) == 0;
+}
+
+#endif
+
+void (*stest_simple_test_result)(int passed, const char *reason,
+                                 const char *function, unsigned int line) =
     stest_simple_test_result_log;
 
 void suite_setup(stest_void_void setup) { stest_suite_setup_func = setup; }
@@ -86,7 +105,7 @@ void suite_teardown(stest_void_void teardown) {
   stest_suite_teardown_func = teardown;
 }
 
-int stest_is_display_only() { return stest_display_only; }
+int stest_is_display_only(void) { return stest_display_only; }
 
 void stest_suite_setup(void) {
   if(stest_suite_setup_func != 0)
@@ -113,8 +132,8 @@ void stest_teardown(void) {
     stest_fixture_teardown();
 }
 
-char *test_file_name(char *path) {
-  char *file = path + strlen(path);
+const char *test_file_name(const char *path) {
+  char *file = (char *)path + strlen(path);
   while(file != path && *file != '\\' && *file != '/')
     file--;
   if(*file == '\\' || *file == '/')
@@ -122,24 +141,20 @@ char *test_file_name(char *path) {
   return file;
 }
 
-static int stest_fixture_tests_run;
-static int stest_fixture_tests_failed;
+static int stest_can_color(void) { return stest_color_output; }
 
-static int stest_can_color(){
-  return stest_color_output;
-}
-
-static void stest_determine_color_output(FILE* standard_out){
+static void stest_determine_color_output(FILE *standard_out) {
 #ifdef WIN32
-  //Output coloring is not supported on windows
+  // Output coloring is not supported on windows
   stest_color_output = 0;
 #else
   stest_color_output = isatty(fileno(standard_out));
 #endif
 }
 
-static void stest_add_color(char* outstr, const char* instr, char* color){
-  if(stest_can_color()){
+static void stest_add_color(char *outstr, const char *instr,
+                            const char *color) {
+  if(stest_can_color()) {
     sprintf(outstr, "%s%s%s", color, instr, STEST_COLOR_RESET);
   }
   else {
@@ -152,8 +167,8 @@ static void stest_log_failure(const char *reason, const char *function,
   char failed[100];
   stest_add_color(failed, reason, STEST_RED);
   if(vs_mode) {
-    printf("%s (%u)		%s,%s\r\n", stest_current_fixture_path,
-           line, function, failed);
+    printf("%s (%u)		%s,%s\r\n", stest_current_fixture_path, line,
+           function, failed);
   }
   else {
     printf("%-30s Line %-5d %s\r\n", function, line, failed);
@@ -166,7 +181,7 @@ static void stest_log_success(const char *function, unsigned int line) {
   printf("%-30s Line %-5d %s\r\n", function, line, passed);
 }
 
-void stest_simple_test_result_log(int passed, char *reason,
+void stest_simple_test_result_log(int passed, const char *reason,
                                   const char *function, unsigned int line) {
   if(!passed) {
 
@@ -302,9 +317,7 @@ void stest_assert_string_not_contains(const char *expected, const char *actual,
   stest_simple_test_result(strstr(actual, expected) == 0, s, function, line);
 }
 
-void stest_run_test(char *fixture, char *test) { stests_run++; }
-
-void stest_header_printer(char *s, int s_len, int length, char f) {
+void stest_header_printer(const char *s, int s_len, int length, char f) {
   int d = (length - (s_len + 2)) / 2;
   int i;
   if(stest_is_display_only() || stest_machine_readable)
@@ -320,7 +333,7 @@ void stest_header_printer(char *s, int s_len, int length, char f) {
   printf("\r\n");
 }
 
-void stest_test_fixture_start(char *filepath) {
+void stest_test_fixture_start(const char *filepath) {
   stest_current_fixture_path = filepath;
   stest_current_fixture = test_file_name(filepath);
 
@@ -342,7 +355,7 @@ void stest_test_fixture_start(char *filepath) {
   stest_fixture_setup = 0;
 }
 
-void stest_test_fixture_end() {
+void stest_test_fixture_end(void) {
   char s[STEST_PRINT_BUFFER_SIZE];
   sprintf(s, "%d run %d failed", stests_run - stest_fixture_tests_run,
           stests_failed - stest_fixture_tests_failed);
@@ -352,20 +365,17 @@ void stest_test_fixture_end() {
   printf("\r\n");
 }
 
-static char *stest_fixture_filter = 0;
-static char *stest_test_filter = 0;
+void fixture_filter(const char *filter) { stest_fixture_filter = filter; }
 
-void fixture_filter(char *filter) { stest_fixture_filter = filter; }
+void test_filter(const char *filter) { stest_test_filter = filter; }
 
-void test_filter(char *filter) { stest_test_filter = filter; }
-
-void set_magic_marker(char *marker) {
+void set_magic_marker(const char *marker) {
   if(marker == NULL)
     return;
   strcpy(stest_magic_marker, marker);
 }
 
-int stest_should_run_test(char *test) {
+int stest_should_run_test(const char *test) {
   int run = 1;
 
   if(stest_fixture_filter) {
@@ -382,7 +392,7 @@ int stest_should_run_test(char *test) {
   return run;
 }
 
-int stest_should_run_fixture(char *fixture) {
+int stest_should_run_fixture(const char *fixture) {
   int run = 1;
 
   if(stest_fixture_filter) {
@@ -394,7 +404,7 @@ int stest_should_run_fixture(char *fixture) {
   return run;
 }
 
-void stest_test(char *fixture, char *test, void (*test_function)(void)) {
+void stest_test(const char *test, void (*test_function)(void)) {
   if(!stest_should_run_test(test)) {
     return;
   }
@@ -416,13 +426,12 @@ void stest_test(char *fixture, char *test, void (*test_function)(void)) {
 
   stest_teardown();
   stest_suite_teardown();
-  stest_run_test(fixture, test);
+  stests_run++;
 }
 
 int run_tests(stest_void_void tests) {
   unsigned long end;
   unsigned long start = GetTickCount();
-  char version[40];
   char s[40];
   tests();
   end = GetTickCount();
@@ -438,7 +447,8 @@ int run_tests(stest_void_void tests) {
     else {
       char failed[30];
       stest_add_color(failed, "failed", STEST_RED);
-      stest_header_printer(failed, sizeof("Failed") - 1, stest_screen_width, ' ');
+      stest_header_printer(failed, sizeof("Failed") - 1, stest_screen_width,
+                           ' ');
     }
   }
   else {
@@ -449,10 +459,11 @@ int run_tests(stest_void_void tests) {
     else {
       char passed[30];
       stest_add_color(passed, "ALL TESTS PASSED", STEST_GREEN);
-      stest_header_printer(passed, sizeof("ALL TESTS PASSED") - 1, stest_screen_width, ' ');
+      stest_header_printer(passed, sizeof("ALL TESTS PASSED") - 1,
+                           stest_screen_width, ' ');
     }
   }
-  if(stests_run == 1){
+  if(stests_run == 1) {
     strcpy(s, "1 test run");
   }
   else {
@@ -493,7 +504,7 @@ int stest_commandline_has_value_after(stest_testrunner_t *runner, int arg) {
 }
 
 int stest_parse_commandline_option_with_value(stest_testrunner_t *runner,
-                                              int arg, char *option,
+                                              int arg, const char *option,
                                               stest_void_string setter) {
   if(stest_is_string_equal_i(runner->argv[arg], option)) {
     if(!stest_commandline_has_value_after(runner, arg)) {
@@ -583,7 +594,7 @@ int stest_testrunner(int argc, char **argv, stest_void_void tests,
 }
 
 #ifdef STEST_INTERNAL_TESTS
-void stest_simple_test_result_nolog(int passed, char *reason,
+void stest_simple_test_result_nolog(int passed, const char *reason,
                                     const char *function, unsigned int line) {
   stest_last_passed = passed;
 }
