@@ -43,6 +43,7 @@ The test runner can be run with a few simple command line arguments.
 | -t \<testname>   | Only run tests that match \<testname>            |
 | -f \<fixturename>| Only run fixtures that match \<fixturename>      |
 | -m               | Output machine readable                          |
+| -s               | Skip the rest of the test when an assert fails   |
 | -k \<marker>     | prepend \<marker> before machine readable output |
 | help             | Output help message                              |
 
