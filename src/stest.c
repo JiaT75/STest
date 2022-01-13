@@ -38,6 +38,7 @@ static int stests_passed = 0;
 static int stests_failed = 0;
 static int stest_display_only = 0;
 static int stest_verbose = 0;
+static int stest_skip_test_if_assert_fails = 0;
 static int vs_mode = 0;
 static int stest_machine_readable = 0;
 static int stest_color_output = 0;
@@ -55,7 +56,6 @@ static stest_void_void stest_fixture_setup = 0;
 static stest_void_void stest_fixture_teardown = 0;
 
 static jmp_buf env;
-
 
 unsigned int GetTickCount(void);
 int stest_is_string_equal_i(const char *s1, const char *s2);
@@ -203,8 +203,9 @@ void stest_simple_test_result_log(int passed, const char *reason,
       stest_log_failure(reason, function, line);
     }
     stests_failed++;
-
-    longjmp(env, 1);
+    if(stest_skip_test_if_assert_fails){
+      longjmp(env, 1);
+    }
   }
   else {
     if(stest_verbose) {
@@ -417,10 +418,16 @@ void stest_test(const char *test, void (*test_function)(void)) {
   stest_suite_setup();
   stest_setup();
 
-  int skip_failed_test = setjmp(env);
-  if(!skip_failed_test){
+  if(stest_skip_test_if_assert_fails){
+    int skip_failed_test = setjmp(env);
+    if(!skip_failed_test){
+      test_function();
+    }
+  }
+  else {
     test_function();
   }
+  
   stest_teardown();
   stest_suite_teardown();
   stests_run++;
@@ -488,6 +495,7 @@ void stest_show_help(void) {
   printf("\t-m:\twill print a machine readable format of the test run, ie :- "
          "\r\n");
   printf("\t   \t<textfixture>,<testname>,<linenumber>,<testresult><EOL>\r\n");
+  printf("\t-s:\twill skip the rest of the test function when an assert fails\r\n");
   printf("\t-k:\twill prepend <marker> before machine readable output \r\n");
   printf("\t   \t<marker> cannot start with a '-'\r\n");
 }
@@ -534,6 +542,8 @@ void stest_interpret_commandline(stest_testrunner_t *runner) {
       vs_mode = 1;
     else if(stest_is_string_equal_i(runner->argv[arg], "-m"))
       stest_machine_readable = 1;
+    else if(stest_is_string_equal_i(runner->argv[arg], "-s"))
+      stest_skip_test_if_assert_fails = 1;
     else if(stest_parse_commandline_option_with_value(runner, arg, "-t",
                                                       test_filter))
       arg++;
