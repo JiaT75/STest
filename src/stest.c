@@ -5,6 +5,7 @@
 
 #include "stest.h"
 #include <string.h>
+#include <setjmp.h>
 
 #ifdef STEST_INTERNAL_TESTS
 static int stest_last_passed = 0;
@@ -52,6 +53,9 @@ static stest_void_void stest_suite_setup_func = 0;
 static stest_void_void stest_suite_teardown_func = 0;
 static stest_void_void stest_fixture_setup = 0;
 static stest_void_void stest_fixture_teardown = 0;
+
+static jmp_buf env;
+
 
 unsigned int GetTickCount(void);
 int stest_is_string_equal_i(const char *s1, const char *s2);
@@ -200,10 +204,7 @@ void stest_simple_test_result_log(int passed, const char *reason,
     }
     stests_failed++;
 
-#ifdef ABORT_TEST_IF_ASSERT_FAIL
-    printf("Test has been finished with failure.\r\n");
     longjmp(env, 1);
-#endif
   }
   else {
     if(stest_verbose) {
@@ -416,14 +417,10 @@ void stest_test(const char *test, void (*test_function)(void)) {
   stest_suite_setup();
   stest_setup();
 
-#ifdef ABORT_TEST_IF_ASSERT_FAIL
-  skip_failed_test = setjmp(env);
-  if(!skip_failed_test)
+  int skip_failed_test = setjmp(env);
+  if(!skip_failed_test){
     test_function();
-#else
-  test_function();
-#endif
-
+  }
   stest_teardown();
   stest_suite_teardown();
   stests_run++;

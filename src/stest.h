@@ -13,12 +13,6 @@ Defines
 
 #define STEST_PRINT_BUFFER_SIZE 100000
 
-#ifdef ABORT_TEST_IF_ASSERT_FAIL
-#include <setjmp.h>
-jmp_buf env;
-int skip_failed_test;
-#endif
-
 /*
 Typedefs
 */
