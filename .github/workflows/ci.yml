@@ -31,3 +31,15 @@ jobs:
         run: make
       - name: Test
         run: ./stests
+  MacOS:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: brew update > /dev/null; brew upgrade > /dev/null; brew install cmake
+      - name: CMake
+        run: cmake .
+      -name: Build
+        run: make
+      - name: Test
+        run: ./stests
