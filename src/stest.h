@@ -6,6 +6,8 @@
 #ifndef STEST_H
 #define STEST_H
 
+#include <stdio.h>
+
 /*
 Defines
 */

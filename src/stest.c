@@ -5,7 +5,6 @@
 
 #include "stest.h"
 #include <setjmp.h>
-#include <stdio.h>
 #include <string.h>
 
 #ifdef STEST_INTERNAL_TESTS
