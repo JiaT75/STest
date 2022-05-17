@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2021 Jia Tan
  * Copyright (c) 2010 Keith Nicholas
+ * Copyright (c) 2021 Jia Tan
  */
 
 #include "stest.h"
-#include <string.h>
 #include <setjmp.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifdef STEST_INTERNAL_TESTS
 static int stest_last_passed = 0;
@@ -38,7 +39,6 @@ static int stests_passed = 0;
 static int stests_failed = 0;
 static int stest_display_only = 0;
 static int stest_verbose = 0;
-static int stest_skip_test_if_assert_fails = 0;
 static int vs_mode = 0;
 static int stest_machine_readable = 0;
 static int stest_color_output = 0;
@@ -50,15 +50,14 @@ static int stest_fixture_tests_failed = 0;
 static const char *stest_fixture_filter;
 static const char *stest_test_filter;
 
+static jmp_buf env;
+static int skip_failed_test;
+
 static stest_void_void stest_suite_setup_func = 0;
 static stest_void_void stest_suite_teardown_func = 0;
 static stest_void_void stest_fixture_setup = 0;
 static stest_void_void stest_fixture_teardown = 0;
 
-static jmp_buf env;
-
-unsigned int GetTickCount(void);
-int stest_is_string_equal_i(const char *s1, const char *s2);
 int stest_is_display_only(void);
 const char *test_file_name(const char *path);
 static int stest_can_color(void);
@@ -71,34 +70,6 @@ int stest_parse_commandline_option_with_value(stest_testrunner_t *runner,
                                               stest_void_string setter);
 void stest_interpret_commandline(stest_testrunner_t *runner);
 void stest_testrunner_create(stest_testrunner_t *runner, int argc, char **argv);
-
-#define SECONDS_TO_MILLISECONDS(sec) sec * 1000
-#define MICRO_SECONDS_TO_MILLISECONDS(microsec) microsec / 1000
-
-#ifdef WIN32
-#include "windows.h"
-int stest_is_string_equal_i(const char *s1, const char *s2) {
-#pragma warning(disable : 4996)
-  return stricmp(s1, s2) == 0;
-}
-
-#else
-#include <strings.h>
-#include <sys/time.h>
-#include <unistd.h>
-
-unsigned int GetTickCount(void) {
-  struct timeval current_time;
-  gettimeofday(&current_time, NULL);
-  return SECONDS_TO_MILLISECONDS(current_time.tv_sec) +
-         MICRO_SECONDS_TO_MILLISECONDS(current_time.tv_usec);
-}
-
-int stest_is_string_equal_i(const char *s1, const char *s2) {
-  return strcasecmp(s1, s2) == 0;
-}
-
-#endif
 
 void (*stest_simple_test_result)(int passed, const char *reason,
                                  const char *function, unsigned int line) =
@@ -147,15 +118,6 @@ const char *test_file_name(const char *path) {
 
 static int stest_can_color(void) { return stest_color_output; }
 
-static void stest_determine_color_output(FILE *standard_out) {
-#ifdef WIN32
-  // Output coloring is not supported on windows
-  stest_color_output = 0;
-#else
-  stest_color_output = isatty(fileno(standard_out));
-#endif
-}
-
 static void stest_add_color(char *outstr, const char *instr,
                             const char *color) {
   if(stest_can_color()) {
@@ -168,7 +130,7 @@ static void stest_add_color(char *outstr, const char *instr,
 
 static void stest_log_failure(const char *reason, const char *function,
                               unsigned int line) {
-  char failed[100];
+  char failed[STEST_PRINT_BUFFER_SIZE];
   stest_add_color(failed, reason, STEST_RED);
   if(vs_mode) {
     printf("%s (%u)		%s,%s\r\n", stest_current_fixture_path, line,
@@ -180,7 +142,7 @@ static void stest_log_failure(const char *reason, const char *function,
 }
 
 static void stest_log_success(const char *function, unsigned int line) {
-  char passed[30];
+  char passed[STEST_PRINT_BUFFER_SIZE];
   stest_add_color(passed, "Passed", STEST_GREEN);
   printf("%-30s Line %-5d %s\r\n", function, line, passed);
 }
@@ -203,9 +165,9 @@ void stest_simple_test_result_log(int passed, const char *reason,
       stest_log_failure(reason, function, line);
     }
     stests_failed++;
-    if(stest_skip_test_if_assert_fails){
-      longjmp(env, 1);
-    }
+
+    printf("Test has been finished with failure.\r\n");
+    longjmp(env, 1);
   }
   else {
     if(stest_verbose) {
@@ -413,36 +375,27 @@ void stest_test(const char *test, void (*test_function)(void)) {
 
   if(stest_is_display_only()) {
     printf("%s\n", test);
+    return;
   }
 
   stest_suite_setup();
   stest_setup();
 
-  if(stest_skip_test_if_assert_fails){
-    int skip_failed_test = setjmp(env);
-    if(!skip_failed_test){
-      test_function();
-    }
-  }
-  else {
+  skip_failed_test = setjmp(env);
+  if(!skip_failed_test)
     test_function();
-  }
-  
+
   stest_teardown();
   stest_suite_teardown();
   stests_run++;
 }
 
 int run_tests(stest_void_void tests) {
-  unsigned long end;
-  unsigned long start = GetTickCount();
   char s[40];
   tests();
-  end = GetTickCount();
 
   if(stest_is_display_only() || stest_machine_readable)
     return STEST_RET_OK;
-  printf("\r\n");
   if(stests_failed > 0) {
     if(stest_machine_readable) {
       stest_header_printer("Failed", sizeof("Failed") - 1, stest_screen_width,
@@ -474,8 +427,6 @@ int run_tests(stest_void_void tests) {
     sprintf(s, "%d tests run", stests_run);
   }
   stest_header_printer(s, strlen(s), stest_screen_width, ' ');
-  sprintf(s, "in %lu ms", end - start);
-  stest_header_printer(s, strlen(s), stest_screen_width, ' ');
   printf("\r\n");
   stest_header_printer("", sizeof("") - 1, stest_screen_width, '=');
 
@@ -495,9 +446,9 @@ void stest_show_help(void) {
   printf("\t-m:\twill print a machine readable format of the test run, ie :- "
          "\r\n");
   printf("\t   \t<textfixture>,<testname>,<linenumber>,<testresult><EOL>\r\n");
-  printf("\t-s:\twill skip the rest of the test function when an assert fails\r\n");
   printf("\t-k:\twill prepend <marker> before machine readable output \r\n");
   printf("\t   \t<marker> cannot start with a '-'\r\n");
+  printf("\t-c:\twill color output with ANSI escape codes\r\n");
 }
 
 int stest_commandline_has_value_after(stest_testrunner_t *runner, int arg) {
@@ -511,7 +462,7 @@ int stest_commandline_has_value_after(stest_testrunner_t *runner, int arg) {
 int stest_parse_commandline_option_with_value(stest_testrunner_t *runner,
                                               int arg, const char *option,
                                               stest_void_string setter) {
-  if(stest_is_string_equal_i(runner->argv[arg], option)) {
+  if(!strcmp(runner->argv[arg], option)) {
     if(!stest_commandline_has_value_after(runner, arg)) {
       printf("Error: The %s option expects to be followed by a value\r\n",
              option);
@@ -528,22 +479,22 @@ void stest_interpret_commandline(stest_testrunner_t *runner) {
   int arg;
   for(arg = 1; (arg < runner->argc) && (runner->action != STEST_DO_ABORT);
       arg++) {
-    if(stest_is_string_equal_i(runner->argv[arg], "--help") ||
-       stest_is_string_equal_i(runner->argv[arg], "-h")) {
+    if(!strncmp(runner->argv[arg], "--help", sizeof("--help")) ||
+       !strncmp(runner->argv[arg], "-h", sizeof("-h"))) {
       stest_show_help();
       runner->action = STEST_DO_NOTHING;
       return;
     }
-    else if(stest_is_string_equal_i(runner->argv[arg], "-d"))
+    else if(!strncmp(runner->argv[arg], "-d", sizeof("-d")))
       runner->action = STEST_DISPLAY_TESTS;
-    else if(stest_is_string_equal_i(runner->argv[arg], "-v"))
+    else if(!strncmp(runner->argv[arg], "-v", sizeof("-v")))
       stest_verbose = 1;
-    else if(stest_is_string_equal_i(runner->argv[arg], "-vs"))
+    else if(!strncmp(runner->argv[arg], "-vs", sizeof("-vs")))
       vs_mode = 1;
-    else if(stest_is_string_equal_i(runner->argv[arg], "-m"))
+    else if(!strncmp(runner->argv[arg], "-m", sizeof("-m")))
       stest_machine_readable = 1;
-    else if(stest_is_string_equal_i(runner->argv[arg], "-s"))
-      stest_skip_test_if_assert_fails = 1;
+    else if(!strncmp(runner->argv[arg], "-c", sizeof("-c")))
+      stest_color_output = 1;
     else if(stest_parse_commandline_option_with_value(runner, arg, "-t",
                                                       test_filter))
       arg++;
@@ -575,7 +526,6 @@ int stest_testrunner(int argc, char **argv, stest_void_void tests,
                      stest_void_void setup, stest_void_void teardown) {
   stest_testrunner_t runner;
   stest_testrunner_create(&runner, argc, argv);
-  stest_determine_color_output(stdout);
   switch(runner.action) {
   case STEST_DISPLAY_TESTS: {
     stest_display_only = 1;

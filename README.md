@@ -45,13 +45,14 @@ The test runner can be run with a few simple command line arguments.
 | -m               | Output machine readable                          |
 | -s               | Skip the rest of the test when an assert fails   |
 | -k \<marker>     | prepend \<marker> before machine readable output |
+| -c               | Color code output (green success, red failure)   |
 | help             | Output help message                              |
 
 ## Example Usage
 
 ```C
 // Sample test
-void my_test() {
+STEST(my_test)
   int actual = 10;
   assert_int_equal(10, actual);
 
@@ -59,10 +60,16 @@ void my_test() {
   assert_string_contains("Hello", actual_str);
 }
 
-// Another sample Test
-void another_test() {
+STEST_HELPER(int, helper, int arg1, int arg2)
+  assert_true(arg2 > arg1);
+  return arg2 - arg1;
+}
+
+// Another sample Test calling a helper function
+STEST(another_test)
   assert_true(1);
   assert_false(0);
+  assert_int_equal(helper(1, 2));
 }
 
 // Sample fixture

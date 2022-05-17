@@ -4,8 +4,9 @@
  */
 
 #include "stests.h"
+#include "stddef.h"
 
-void test_assert_n_array_equal() {
+STEST(test_assert_n_array_equal)
   int array_1[4] = {0, 1, 2, 3};
   int array_2[4] = {0, 1, 2, 4};
   int array_3[4] = {0, 1, 2, 3};
@@ -17,7 +18,7 @@ void test_assert_n_array_equal() {
   assert_test_fails(assert_n_array_equal(array_1, array_2, 0));
 }
 
-void test_assert_string_equal() {
+STEST(test_assert_string_equal)
   assert_test_passes(assert_string_equal((char *)0, (char *)0));
   assert_test_passes(assert_string_equal("", ""));
   assert_test_passes(assert_string_equal("foo", "foo"));
@@ -28,33 +29,33 @@ void test_assert_string_equal() {
   assert_test_fails(assert_string_equal("foo", "foo\n"));
 }
 
-void test_assert_ulong_equal() {
+STEST(test_assert_ulong_equal)
   assert_test_passes(assert_ulong_equal(1, 1));
   assert_test_passes(assert_ulong_equal(-2, -2));
   assert_test_fails(assert_ulong_equal(1, 0));
   assert_test_fails(assert_ulong_equal(-2, 2));
 }
 
-void test_assert_int_equal() {
+STEST(test_assert_int_equal)
   assert_test_passes(assert_int_equal(1, 1));
   assert_test_passes(assert_int_equal(-2, -2));
   assert_test_fails(assert_int_equal(1, 0));
   assert_test_fails(assert_int_equal(-2, 2));
 }
 
-void test_assert_true() {
+STEST(test_assert_true)
   assert_test_passes(assert_true(1));
   assert_test_fails(assert_true(0));
 }
 
-void test_assert_false() {
+STEST(test_assert_false)
   assert_test_passes(assert_false(0));
   assert_test_fails(assert_false(1));
 }
 
-void test_assert_fail() { assert_test_fails(assert_fail("")); }
+STEST(test_assert_fail) assert_test_fails(assert_fail("")); }
 
-void test_assert_bit_set() {
+STEST(test_assert_bit_set)
   for(int bit = 0, value = 1; bit < sizeof(int) * 8; bit++, value <<= 1) {
     assert_test_passes(assert_bit_set(bit, value));
     if(bit > 0) {
@@ -63,7 +64,7 @@ void test_assert_bit_set() {
   }
 }
 
-void test_assert_bit_not_set() {
+STEST(test_assert_bit_not_set)
   for(int bit = 0, value = 1; bit < sizeof(int) * 8; bit++, value <<= 1) {
     assert_test_fails(assert_bit_not_set(bit, value));
     if(bit > 0) {
@@ -72,7 +73,7 @@ void test_assert_bit_not_set() {
   }
 }
 
-void test_assert_bit_mask_matches() {
+STEST(test_assert_bit_mask_matches)
   // mask in binary => 000100100011010001010110
   int mask = 0x123456;
   for(int i = 0; i < sizeof(int) * 8 - 1; i++) {
@@ -81,7 +82,7 @@ void test_assert_bit_mask_matches() {
   }
 }
 
-void test_assert_double_equal() {
+STEST(test_assert_double_equal)
   const double delta = 0.001;
   assert_test_passes(assert_double_equal(1.0, 1.0, delta));
   assert_test_fails(assert_double_equal(1.0, 2.0, delta));
@@ -92,32 +93,41 @@ void test_assert_double_equal() {
   assert_test_fails(assert_double_equal(d1, d2, delta));
 }
 
-void test_assert_string_contains() {
+STEST(test_assert_string_contains)
   const char *str1 = "string one";
   const char *str2 = "string one and more";
   assert_test_passes(assert_string_contains(str1, str2));
   assert_test_fails(assert_string_contains(str2, str1));
 }
 
-void test_assert_string_not_contains() {
+STEST(test_assert_string_not_contains)
   const char *str1 = "string one";
   const char *str2 = "string one and more";
   assert_test_fails(assert_string_not_contains(str1, str2));
   assert_test_passes(assert_string_not_contains(str2, str1));
 }
 
-void test_assert_string_starts_with() {
+STEST(test_assert_string_starts_with)
   const char *str1 = "string one";
   const char *str2 = "string one and more";
   assert_test_passes(assert_string_starts_with(str1, str2));
   assert_test_fails(assert_string_starts_with(str2, str1));
 }
 
-void test_assert_string_ends_with() {
+STEST(test_assert_string_ends_with)
   const char *str1 = "and more";
   const char *str2 = "string one and more";
   assert_test_passes(assert_string_ends_with(str1, str2));
   assert_test_fails(assert_string_ends_with(str2, str1));
+}
+
+STEST_HELPER(int, helper_function, int arg1, int arg2)
+  assert_true(arg2 > arg1);
+  return arg2 - arg1;
+}
+
+STEST(test_using_helper_function)
+  assert_int_equal(1, helper_function(1, 2));
 }
 
 void test_fixture_stest() {
@@ -137,11 +147,10 @@ void test_fixture_stest() {
   run_test(test_assert_string_not_contains);
   run_test(test_assert_string_starts_with);
   run_test(test_assert_string_ends_with);
+  run_test(test_using_helper_function);
   test_fixture_end();
 }
 
-void all_tests() { test_fixture_stest(); }
-
 int main(int argc, char **argv) {
-  return stest_testrunner(argc, argv, all_tests, NULL, NULL);
+  return stest_testrunner(argc, argv, test_fixture_stest, NULL, NULL);
 }
