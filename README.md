@@ -52,7 +52,7 @@ The test runner can be run with a few simple command line arguments.
 
 ```C
 // Sample test
-STEST(my_test)
+void my_test() {
   int actual = 10;
   assert_int_equal(10, actual);
 
@@ -60,16 +60,10 @@ STEST(my_test)
   assert_string_contains("Hello", actual_str);
 }
 
-STEST_HELPER(int, helper, int arg1, int arg2)
-  assert_true(arg2 > arg1);
-  return arg2 - arg1;
-}
-
-// Another sample Test calling a helper function
-STEST(another_test)
+// Another sample Test
+void another_test() {
   assert_true(1);
   assert_false(0);
-  assert_int_equal(helper(1, 2));
 }
 
 // Sample fixture

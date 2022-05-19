@@ -14,16 +14,6 @@ Defines
 
 #define STEST_PRINT_BUFFER_SIZE 10000
 
-// First prototype, then declare the test function
-#define STEST(test_name) static void test_name(void); \
-static void test_name(void) \
-{ const char *__STEST_FUNC_NAME__ = #test_name; (void) __STEST_FUNC_NAME__;
-
-#define STEST_HELPER(return_type, test_name, ...) static return_type \
-test_name(__VA_ARGS__); \
-static return_type test_name(__VA_ARGS__) \
-{ const char *__STEST_FUNC_NAME__ = #test_name; (void) __STEST_FUNC_NAME__;
-
 /*
 Typedefs
 */
@@ -76,22 +66,22 @@ Assert Macros
 */
 
 // clang-format off
-#define assert_true(test) do { stest_assert_true(test, __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_false(test) do {  stest_assert_false(test, __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_int_equal(expected, actual) do {  stest_assert_int_equal(expected, actual, __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_ulong_equal(expected, actual) do {  stest_assert_ulong_equal(expected, actual, __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_string_equal(expected, actual) do {  stest_assert_string_equal(expected, actual, __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_n_array_equal(expected, actual, n) do { size_t stest_count; for(stest_count=0; stest_count<n; stest_count++) { char s_stest[STEST_PRINT_BUFFER_SIZE]; sprintf(s_stest,"Expected %d to be %d at position %d", actual[stest_count], expected[stest_count], (int)stest_count); stest_simple_test_result((expected[stest_count] == actual[stest_count]), s_stest, __STEST_FUNC_NAME__, __LINE__);} } while (0)
-#define assert_bit_set(bit_number, value) { stest_simple_test_result(((1 << bit_number) & value), " Expected bit to be set" ,  __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_bit_not_set(bit_number, value) { stest_simple_test_result(!((1 << bit_number) & value), " Expected bit not to to be set" ,  __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_bit_mask_matches(value, mask) { stest_simple_test_result(((value & mask) == mask), " Expected all bits of mask to be set" ,  __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_fail(message) { stest_simple_test_result(0, message,  __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_float_equal(expected, actual, delta) do {  stest_assert_float_equal(expected, actual, delta, __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_double_equal(expected, actual, delta) do {  stest_assert_double_equal(expected, actual, delta, __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_string_contains(expected, actual) do {  stest_assert_string_contains(expected, actual, __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_string_not_contains(expected, actual) do {  stest_assert_string_not_contains(expected, actual, __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_string_starts_with(expected, actual) do {  stest_assert_string_starts_with(expected, actual, __STEST_FUNC_NAME__, __LINE__); } while (0)
-#define assert_string_ends_with(expected, actual) do {  stest_assert_string_ends_with(expected, actual, __STEST_FUNC_NAME__, __LINE__); } while (0)
+#define assert_true(test) do { stest_assert_true(test, __func__, __LINE__); } while (0)
+#define assert_false(test) do {  stest_assert_false(test, __func__, __LINE__); } while (0)
+#define assert_int_equal(expected, actual) do {  stest_assert_int_equal(expected, actual, __func__, __LINE__); } while (0)
+#define assert_ulong_equal(expected, actual) do {  stest_assert_ulong_equal(expected, actual, __func__, __LINE__); } while (0)
+#define assert_string_equal(expected, actual) do {  stest_assert_string_equal(expected, actual, __func__, __LINE__); } while (0)
+#define assert_n_array_equal(expected, actual, n) do { size_t stest_count; for(stest_count=0; stest_count<n; stest_count++) { char s_stest[STEST_PRINT_BUFFER_SIZE]; sprintf(s_stest,"Expected %d to be %d at position %d", actual[stest_count], expected[stest_count], (int)stest_count); stest_simple_test_result((expected[stest_count] == actual[stest_count]), s_stest, __func__, __LINE__);} } while (0)
+#define assert_bit_set(bit_number, value) { stest_simple_test_result(((1 << bit_number) & value), " Expected bit to be set" ,  __func__, __LINE__); } while (0)
+#define assert_bit_not_set(bit_number, value) { stest_simple_test_result(!((1 << bit_number) & value), " Expected bit not to to be set" ,  __func__, __LINE__); } while (0)
+#define assert_bit_mask_matches(value, mask) { stest_simple_test_result(((value & mask) == mask), " Expected all bits of mask to be set" ,  __func__, __LINE__); } while (0)
+#define assert_fail(message) { stest_simple_test_result(0, message,  __func__, __LINE__); } while (0)
+#define assert_float_equal(expected, actual, delta) do {  stest_assert_float_equal(expected, actual, delta, __func__, __LINE__); } while (0)
+#define assert_double_equal(expected, actual, delta) do {  stest_assert_double_equal(expected, actual, delta, __func__, __LINE__); } while (0)
+#define assert_string_contains(expected, actual) do {  stest_assert_string_contains(expected, actual, __func__, __LINE__); } while (0)
+#define assert_string_not_contains(expected, actual) do {  stest_assert_string_not_contains(expected, actual, __func__, __LINE__); } while (0)
+#define assert_string_starts_with(expected, actual) do {  stest_assert_string_starts_with(expected, actual, __func__, __LINE__); } while (0)
+#define assert_string_ends_with(expected, actual) do {  stest_assert_string_ends_with(expected, actual, __func__, __LINE__); } while (0)
 
 /*
 Fixture / Test Management
